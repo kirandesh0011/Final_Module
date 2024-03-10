@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract CakePurchase is ERC20, Ownable {
+    enum CakeFlavor { Vanilla, Chocolate, Strawberry }
+
+    event CakePurchased(
+        address indexed buyer,
+        CakeFlavor flavor,
+        uint256 cakePrice
+    );
+
+    mapping(address => CakeFlavor) public userCakes;
+
+    uint256 public constant VanillaCakePrice = 500;
+    uint256 public constant ChocolateCakePrice = 750;
+    uint256 public constant StrawberryCakePrice = 1000;
+
+    constructor(address initialOwner) ERC20("CakeCoin", "CCC") Ownable(initialOwner) {}
+
+    function mintTokens(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
+
+    function burnTokens(uint256 amount) public {
+        require(amount > 0, "Amount to burn must be greater than zero");
+        require(balanceOf(msg.sender) >= amount, "Insufficient funds for token burn");
+        _burn(msg.sender, amount);
+    }
+
+    function purchaseCake(uint8 cakeNumber) public {
+        require(cakeNumber >= 1 && cakeNumber <= 3, "Invalid cake number");
+
+        CakeFlavor flavor;
+        uint256 cakePrice;
+
+        if (cakeNumber == 1) {
+            require(balanceOf(msg.sender) >= VanillaCakePrice, "Insufficient funds for cake purchase");
+            flavor = CakeFlavor.Vanilla;
+            cakePrice = VanillaCakePrice;
+            _burn(msg.sender, cakePrice);
+        } else if (cakeNumber == 2) {
+            require(balanceOf(msg.sender) >= ChocolateCakePrice, "Insufficient funds for cake purchase");
+            flavor = CakeFlavor.Chocolate;
+            cakePrice = ChocolateCakePrice;
+            _burn(msg.sender, cakePrice);
+        } else {
+            require(balanceOf(msg.sender) >= StrawberryCakePrice, "Insufficient funds for cake purchase");
+            flavor = CakeFlavor.Strawberry;
+            cakePrice = StrawberryCakePrice;
+            _burn(msg.sender, cakePrice);
+        }
+
+        userCakes[msg.sender] = flavor;
+        emit CakePurchased(msg.sender, flavor, cakePrice);
+    }
+
+    function transferCakeTokens(address to, uint256 amount) external {
+        require(to != address(0), "Invalid recipient address");
+        require(balanceOf(msg.sender) >= amount, "Insufficient funds for token transfer");
+        _transfer(msg.sender, to, amount);
+    }
+}
